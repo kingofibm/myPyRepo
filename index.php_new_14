@@ -1,0 +1,227 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head> 
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/> 
+<meta http-equiv="refresh" content="600"/>
+
+<title>Sofie Hill House Data</title>
+
+<script type="text/javascript" src="js/jquery-1.9.1.min.js" ></script>
+<script type="text/javascript" src="js/highcharts.js" ></script>
+<script type="text/javascript" src="js/themes/gray.js"></script>
+
+<script type="text/javascript">
+var chart;
+
+$(document).ready(function() {
+    var options = {
+        chart: {
+            //type: spline,
+            zoomType: 'xy',
+            renderTo: 'container',
+            defaultSeriesType: 'line'
+        },
+        title: {
+            text: 'Sofie Hill House Data',
+            x: -20, //center
+//            style: {color: '#4572A7'}
+        },
+        subtitle: {
+            text: '',
+            x: -20
+        },
+        xAxis: {
+            type: 'datetime',
+            gridLineWidth: 1
+        },
+        yAxis: [{
+            max :30,
+            min :0,
+            title: {
+                text: 'Temperature (C)',
+                style : {color: '#89A54E'}
+            },
+            plotLines: [{
+                value: 0,
+                width: 2,
+                color: '#89A54E'}],
+            labels: {
+                formatter: function() {
+                    return this.value+' C';
+                },   
+        },
+        opposite: true
+        },
+
+        { // Secondary yAxis
+            gridLineWidth: 0,
+            max :10,
+            min :0,
+            title: {
+                text: 'Momentan Power Usage (kW)',
+                style: {
+                    color: 'AA4643'
+                }
+            },
+            labels: {
+                formatter: function() {
+                    return this.value+' kW';
+                },
+                style: {
+                    color: '#808080'
+                }
+            },
+         },
+
+        { max :80,
+          min :40,
+          title :{
+                 text : 'Humidity (%)'
+                },
+           labels: {
+                formatter: function() {
+                    return this.value+' %';
+                },
+                style: {
+                    color: '#808080'
+                }
+            },          
+
+          opposite: true
+        }
+
+
+
+         ], // end y-axis 
+
+
+
+        tooltip: {// This will appear when you hover above the graph in the chart
+                     shared: true,
+                     crosshairs: true 
+         },
+
+
+        plotOptions: {
+            series: {
+                marker: {
+                    enabled: false,
+                    states: {
+                        hover: {
+                            enabled: true
+                        }
+                    }
+                }
+            }
+        },
+        legend: {
+            layout: 'vertical',
+            align: 'right',
+            verticalAlign: 'top',
+            x: -10,
+            y: 100,
+            borderWidth: 0
+        },
+        series: [{
+            name: 'Power Consumption',
+            color: '#AA4643',
+            tooltip: {valueSuffix: 'kW'}
+        }]
+    }
+
+    // Load data asynchronously using jQuery. On success, add the data
+    // to the options and initiate the chart.
+    // This data is obtained by exporting a GA custom report to TSV.
+    // http://api.jquery.com/jQuery.get/
+    // hm jQuery= $ ??
+    jQuery.get("dataNew.php", {dagar: '14'}, function(tsv) {
+        var lines = [],
+            readings = [],
+            readings2 = [],
+            readings3 = [],
+            readings4 = [],
+            readings5 = [],
+            temp,
+            date;
+        try {
+            // split the data return into lines and parse them
+            tsv = tsv.split(/\n/g);
+            jQuery.each(tsv, function(i, line) {
+                line = line.split(/\t/);
+                console.log(line);
+                date = Date.parse(line[0] + ' UTC');
+                
+                readings.push([
+                    date,
+                    parseFloat(line[1].replace(',', ''))
+                    ]);
+                
+                readings2.push([
+                    date,
+                    parseFloat(line[2].replace(',', ''))
+                ]);
+                readings3.push([
+                     date,
+                     parseFloat(line[3].replace(',', ''))
+                ]);
+
+                readings4.push([
+                     date,
+                     parseFloat(line[4].replace(',', ''))
+                ]);
+
+                readings5.push([
+                     date,
+                     parseFloat(line[5].replace(',', ''))
+                ]);
+
+
+            });
+        } catch (e) {}
+// add new series here . 
+        
+        options.series[0].name = 'Power Consumption';
+	options.series[0].data = readings;
+        options.series[0].yAxis = 1;       
+        options.series.push({name:'TemperatureK',color: '#64E572',tooltip: {valueSuffix: 'deg C'},data:readings2,yAxis:0,min:0,max:30});
+        options.series.push({name:'TemperatureV',color: '#89A54E',tooltip: {valueSuffix: 'deg C'},data:readings4,yAxis:0,min:0,max:30});
+
+        options.series.push({name:'HumidityK',color: '#0066FF',tooltip: {valueSuffix: '%'},data:readings3,yAxis:2,min:40,max:80});
+        options.series.push({name:'HumidityV',color: '#24CBE5',tooltip: {valueSuffix: '%'},data:readings5,yAxis:2,min:40,max:80});
+
+
+// calculate power integral and render to chart . Very simple calculation . time * power for each segment . 
+        power=0;
+        arrayLen = readings.length-1;
+        chart = new Highcharts.Chart(options);
+        
+         for (var i=0;i<arrayLen;i++){
+             power=power+(readings[i+1][0]-readings[i][0])/1000*(readings[i][1]+readings[i+1][1])/2;
+         }
+
+        // render text into chart 
+        text2 = chart.renderer.text('Power Usage over period '+(power/3600).toFixed(0)+' kwH',
+                chart.plotLeft + 10, 
+                chart.plotTop - 10)
+                .css({
+                       color:'#AA4643',
+                       fontSize: '25px'
+                 })
+                .add();
+    
+
+    });
+
+});
+</script>
+
+</head>
+<body>
+<div id="container" style="width: 90%; height: 900px; margin: 0 auto"></div>
+<div id="container2" style="width: 50%; height: 500px; margin: 0 auto"></div>                                        
+</body>
+</html>
+
+
+
